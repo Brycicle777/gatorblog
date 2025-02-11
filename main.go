@@ -1,28 +1,41 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"internal/config"
+	"log"
 	"os"
+	"internal/config"
 )
+
+type state struct {
+	cfg *config.Config
+}
 
 func main() {
 	cfg, err := config.Read()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
+		log.Fatalf("error reading config: %v", err)
 	}
 
-	cfg.SetUser("Bryce")
-	cfg, err = config.Read()
+	programState := &state{
+		cfg: &cfg,
+	}
+
+	cmds := commands{
+		registeredCommands: make(map[string]func(*state, command) error),
+	}
+	cmds.register("login", handlerLogin)
+
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: cli <command> [args...]")
+		return
+	}
+
+	cmdName := os.Args[1]
+	cmdArgs := os.Args[2:]
+
+	err = cmds.run(programState, command{Name: cmdName, Args: cmdArgs})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
+		log.Fatal(err)
 	}
 
-	formattedConfig, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-	}
-
-	fmt.Printf("%s\n", string(formattedConfig))
 }

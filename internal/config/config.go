@@ -13,6 +13,33 @@ type Config struct {
 	CurrentUserName string `json:"current_user_name"`
 }
 
+func (cfg *Config) SetUser(userName string) error {
+	cfg.CurrentUserName = userName
+	return write(*cfg)
+}
+
+func Read() (Config, error) {
+	configFilePath, err := getConfigFilePath()
+	if err != nil {
+		return Config{}, err
+	}
+
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		return Config{}, err
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	cfg := Config{}
+	err = decoder.Decode(&cfg)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return cfg, nil
+}
+
 func getConfigFilePath() (path string, err error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -22,44 +49,24 @@ func getConfigFilePath() (path string, err error) {
 	return configFilePath, nil
 }
 
-func Read() (Config, error) {
+func write(cfg Config) error {
 	configFilePath, err := getConfigFilePath()
 	if err != nil {
-		return Config{}, err
+		return err
 	}
 
-	data, err := os.ReadFile(configFilePath)
-	if err != nil {
-		return Config{}, err
-	}
-
-	var config Config
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return Config{}, err
-	}
-
-	return config, nil
-}
-
-func write(cfg *Config) error {
-	configFilePath, _ := getConfigFilePath()
-	configData, err := json.Marshal(cfg)
+	file, err := os.Create(configFilePath)
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(configFilePath, configData, 0666)
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(cfg)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (cfg *Config) SetUser(user string) error {
-	cfg.CurrentUserName = user
-	err := write(cfg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
