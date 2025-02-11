@@ -10,9 +10,8 @@ require internal/config v0.0.0
 
 replace internal/database v0.0.0 => ./internal/database
 
-require internal/database v0.0.0
-
 require (
-	github.com/google/uuid v1.6.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
+	github.com/google/uuid v1.6.0
+	github.com/lib/pq v1.10.9
+	internal/database v0.0.0
 )
