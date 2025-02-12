@@ -11,17 +11,19 @@ import (
 )
 
 func handlerAgg(s *state, cmd command) error {
-	//wagslan can't be reached on work wifi
-	url := "https://www.wagslane.dev/index.xml"
-	ctx := context.Background()
-
-	rssFeed, err := fetchFeed(ctx, url)
-	if err != nil {
-		return fmt.Errorf("error retrieving from url: %v", err)
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %v <time_duration>", cmd.Name)
 	}
-
-	fmt.Printf("%v", rssFeed)
-	return nil
+	time_between_reqs := cmd.Args[0]
+	dur, err := time.ParseDuration(time_between_reqs)
+	if err != nil {
+		return fmt.Errorf("error parsing duration string %v with error: %v", time_between_reqs, err)
+	}
+	ticker := time.NewTicker(dur)
+	fmt.Printf("Collecting feeds every %v\n", time_between_reqs)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 }
 
 func handlerAddfeed(s *state, cmd command, user database.User) error {
