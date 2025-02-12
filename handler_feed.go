@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"internal/database"
+
+	"github.com/google/uuid"
 )
 
 func handlerAgg(s *state, cmd command) error {
@@ -17,4 +22,34 @@ func handlerAgg(s *state, cmd command) error {
 
 	fmt.Printf("%v", rssFeed)
 	return nil
+}
+
+func handlerAddfeed(s *state, cmd command) error {
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("error retrieving current user: %v", s.cfg.CurrentUserName)
+	}
+
+	if len(cmd.Args) != 2 {
+		return fmt.Errorf("usage: %s <name> <url>", cmd.Name)
+	}
+	name := cmd.Args[0]
+	url := cmd.Args[0]
+
+	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      name,
+		Url:       url,
+		UserID:    user.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating feed: %v", err)
+	}
+
+	fmt.Printf("Feed created:\n%v", feed)
+
+	return nil
+
 }
