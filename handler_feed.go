@@ -64,20 +64,3 @@ func handlerFeeds(s *state, cmd command) error {
 	}
 	return nil
 }
-
-// func handlerUsers(s *state, cmd command) error {
-// 	users, err := s.db.GetUsers(context.Background())
-// 	if err != nil {
-// 		return fmt.Errorf("error retrieving all users: %v", err)
-// 	}
-
-// 	for i := 0; i < len(users); i++ {
-// 		if users[i].Name == s.cfg.CurrentUserName {
-// 			fmt.Printf("* %v (current)\n", users[i].Name)
-// 		} else {
-// 			fmt.Printf("* %v\n", users[i].Name)
-// 		}
-// 	}
-
-// 	return nil
-// }
