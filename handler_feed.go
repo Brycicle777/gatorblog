@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"internal/database"
@@ -71,5 +72,32 @@ func handlerFeeds(s *state, cmd command) error {
 	for i := range feeds {
 		fmt.Printf("%v\n", feeds[i])
 	}
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	if len(cmd.Args) > 1 {
+		return fmt.Errorf("usage: %s <optional limit number>", cmd.Name)
+	}
+	limit := int32(2)
+	if len(cmd.Args) == 1 {
+		limit64, err := strconv.ParseInt(cmd.Args[0], 10, 32)
+		if err != nil {
+			return fmt.Errorf("error converting limit to number: %v", err)
+		}
+		limit = int32(limit64)
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	})
+	if err != nil {
+		return fmt.Errorf("error retrieving posts: %v", err)
+	}
+	for i := range posts {
+		fmt.Printf("%v\n", posts[i].Url)
+	}
+
 	return nil
 }
