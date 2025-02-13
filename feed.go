@@ -2,11 +2,17 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"html"
+	"internal/database"
 	"io"
+	"log"
 	"net/http"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type RSSFeed struct {
@@ -73,8 +79,46 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return fmt.Errorf("error fetching feed: %v", err)
 	}
+
 	for i := range rssFeed.Channel.Item {
-		fmt.Printf("%v\n", rssFeed.Channel.Item[i].Title)
+		valid := true
+		if len(rssFeed.Channel.Item[i].Description) == 0 {
+			valid = false
+		}
+		nullDesc := sql.NullString{
+			String: rssFeed.Channel.Item[i].Description,
+			Valid:  valid,
+		}
+		pubDate, err := time.Parse(time.RFC1123Z, rssFeed.Channel.Item[i].PubDate)
+		if err != nil {
+			log.Printf("error parsing pubdate %v: %v\n", rssFeed.Channel.Item[i].PubDate, err)
+			continue
+		}
+		existingPost, err := s.db.GetPostByUrl(ctx, rssFeed.Channel.Item[i].Link)
+		if err != nil && err != sql.ErrNoRows {
+			log.Printf("error checking if url %v exists already: %v", rssFeed.Channel.Item[i].Link, err)
+			continue
+		}
+		if len(existingPost.Url) != 0 {
+			// log.Printf("post %v exists, skipping...", existingPost.Url)
+			continue
+		}
+		post, err := s.db.CreatePost(ctx, database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       rssFeed.Channel.Item[i].Title,
+			Url:         rssFeed.Channel.Item[i].Link,
+			Description: nullDesc,
+			PublishedAt: pubDate,
+			FeedID:      feed.ID,
+		})
+		if err != nil {
+			log.Printf("error creating post %v: %v\n", rssFeed.Channel.Item[i].Link, err)
+			continue
+		}
+
+		fmt.Printf("Created post for: %v\n", post.Url)
 	}
 	return nil
 }
